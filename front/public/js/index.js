@@ -351,3 +351,74 @@ function bindSquareClickHandlers() {
         }
     });
 }
+
+socket.on('connect', function() {
+    console.log('Socket connected with id:', socket.id);
+});
+
+socket.on('connect_error', function(error) {
+    console.error('Connection error:', error);
+});
+
+socket.on('invalidCode', function() {
+    console.error('Invalid game code received from server');
+    alert('Invalid game code. Please check the URL and try again.');
+    window.location.href = '/?error=invalidCode';
+});
+
+socket.on('playerNames', function(data) {
+    console.log('Received player names:', data);
+
+    if (data.white) {
+        whitePlayerName = data.white;
+    }
+
+    if (data.black) {
+        blackPlayerName = data.black;
+    }
+
+    // Update the display with new names
+    updatePlayerNames();
+
+    // Also update the game status to reflect new names
+    updateStatus();
+});
+
+function initializeGame() {
+    // Request player names from server
+    const gameId = window.gameId || new URLSearchParams(window.location.search).get('code');
+    if (gameId) {
+        socket.emit('getPlayerNames', { gameId: gameId });
+    }
+
+    // Initialize with default names in case server doesn't respond
+    updatePlayerNames();
+}
+
+socket.on('gameState', function(data) {
+    // Handle player names
+    if (data.whitePlayerName) {
+        whitePlayerName = data.whitePlayerName;
+    }
+
+    if (data.blackPlayerName) {
+        blackPlayerName = data.blackPlayerName;
+    }
+
+    // Update the DOM elements
+    updatePlayerNames();
+});
+
+socket.on('startGame', function() {
+    console.log("[DEBUG] Received startGame event from server");
+    gameHasStarted = true;
+    console.log("[DEBUG] gameHasStarted set to", gameHasStarted);
+    updateStatus();
+    showNotification('Game has started!', 'success');
+});
+
+socket.on('gameOverDisconnect', function() {
+    console.log("Game over - opponent disconnected");
+    gameOver = true;
+    updateStatus();
+});
