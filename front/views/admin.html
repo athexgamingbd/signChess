@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Chess Admin</title>
+
+    <!-- Chessboard CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css" />
+    
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-dark: #365380;
+            --secondary: #6c757d;
+            --success: #4CAF50;
+            --info: #42a5f5;
+            --warning: #ff9800;
+            --danger: #f44336;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --white: #ffffff;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --border-radius: 8px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9fafb;
+            color: #333;
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background-color: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 24px;
+        }
+        
+        .header .status {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .status.online {
+            color: #4ade80;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+        }
+        
+        .card-title i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn i {
+            margin-right: 8px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #3d8b40;
+        }
+        
+        .btn-info {
+            background-color: var(--info);
+            color: white;
+        }
+        
+        .btn-info:hover {
+            background-color: #2196f3;
+        }
+        
+        .match-info {
+            margin-top: 20px;
+        }
+        
+        .match-code {
+            background-color: #f0f4f8;
+            padding: 12px 15px;
+            border-radius: var(--border-radius);
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            border-left: 4px solid var(--primary);
+            font-weight: 500;
+        }
+        
+        .link-container {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            background-color: white;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .link-label {
+            background-color: #f5f5f5;
+            padding: 10px 15px;
+            font-weight: 500;
+            width: 120px;
+            border-right: 1px solid #e0e0e0;
+            color: var(--dark);
+        }
+        
+        .link-value {
+            flex: 1;
+            padding: 10px 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: var(--dark);
+        }
+        
+        .copy-btn {
+            background-color: var(--info);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .copy-btn i {
+            margin-right: 5px;
+        }
+        
+        .copy-btn:hover {
+            background-color: #1e88e5;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            color: var(--danger);
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .link-container {
+                flex-direction: column;
+                margin-bottom: 20px;
+            }
+            
+            .link-label {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            
+            .link-value {
+                width: 100%;
+                padding: 15px;
+            }
+            
+            .copy-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="header">
+            <h1><i class="fas fa-chess"></i> Sign Chess Admin Panel</h1>
+            <div class="status online"><i class="fas fa-circle"></i> Server Connected</div>
+        </div>
+        
+        <div class="dashboard-grid">
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-gamepad"></i> Create New Match</h2>
+                <p>Create a new chess match and get shareable links for white and black players.</p>
+                
+                <!-- Add player name fields -->
+                <div style="margin-bottom: 15px;">
+                    <div style="margin-bottom: 10px;">
+                        <label for="whitePlayerName" style="display: block; margin-bottom: 5px;">White Player Name:</label>
+                        <input type="text" id="whitePlayerName" placeholder="Enter white player name"
+                              style="padding: 8px; width: 100%; border: 1px solid #e0e0e0; border-radius: var(--border-radius);">
+                    </div>
+                
+                    <div style="margin-bottom: 10px;">
+                        <label for="blackPlayerName" style="display: block; margin-bottom: 5px;">Black Player Name:</label>
+                        <input type="text" id="blackPlayerName" placeholder="Enter black player name"
+                              style="padding: 8px; width: 100%; border: 1px solid #e0e0e0; border-radius: var(--border-radius);">
+                    </div>
+                </div>
+                    
+                <button id="createMatchButton" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Create Match
+                        </button>
+
+                <div id="adminErrorMessage" class="error-message"></div>
+                
+                <div class="match-info" id="matchInfo" style="display: none;">
+                    <h3>Match Details</h3>
+                    <div id="matchCode" class="match-code"></div>
+                    
+                    <div class="link-container">
+                        <div class="link-label">White Player</div>
+                        <div id="matchLinkWhite" class="link-value"></div>
+                        <button class="copy-btn" id="copyWhiteBtn">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+            </div>
+            
+                    <div class="link-container">
+                        <div class="link-label">Black Player</div>
+                        <div id="matchLinkBlack" class="link-value"></div>
+                        <button class="copy-btn" id="copyBlackBtn">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                </div>
+
+                    <div class="link-container">
+                        <div class="link-label">Spectator</div>
+                        <div id="matchLinkView" class="link-value"></div>
+                        <button class="copy-btn" id="copyViewBtn">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+            </div>
+        </div>
+    </div>
+
+            <div class="card">
+                <h2 class="card-title"><i class="fas fa-info-circle"></i> Admin Information</h2>
+                <p>Welcome to the Sign Chess Admin Panel. Here you can create and manage chess matches.</p>
+                
+                <div style="margin-top: 20px;">
+                    <h3>Quick Guide</h3>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Click "Create Match" to generate a new chess game</li>
+                        <li>Share the White Player link with the first player</li>
+                        <li>Share the Black Player link with the second player</li>
+                        <li>Share the Spectator link with viewers</li>
+                        <li>The game starts when both players join</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.13.4/chess.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+            const adminErrorMessage = document.getElementById('adminErrorMessage');
+            const createMatchButton = document.getElementById('createMatchButton');
+            const matchCode = document.getElementById('matchCode');
+            const matchLinkWhite = document.getElementById('matchLinkWhite');
+            const matchLinkBlack = document.getElementById('matchLinkBlack');
+            const matchLinkView = document.getElementById('matchLinkView');
+            const copyWhiteBtn = document.getElementById('copyWhiteBtn');
+            const copyBlackBtn = document.getElementById('copyBlackBtn');
+            const copyViewBtn = document.getElementById('copyViewBtn');
+            const matchInfo = document.getElementById('matchInfo');
+
+
+           
+            // Socket connection status
+            socket.on('connect', function() {
+                document.querySelector('.status').classList.add('online');
+                document.querySelector('.status').innerHTML = '<i class="fas fa-circle"></i> Server Connected';
+            });
+
+            socket.on('disconnect', function() {
+                document.querySelector('.status').classList.remove('online');
+                document.querySelector('.status').innerHTML = '<i class="fas fa-circle"></i> Server Disconnected';
+            });
+
+            createMatchButton.addEventListener('click', () => {
+                const gameId = generateGameCode();
+
+                // Get player names
+                const whitePlayerName = document.getElementById('whitePlayerName')?.value.trim() || 'White Player';
+                const blackPlayerName = document.getElementById('blackPlayerName')?.value.trim() || 'Black Player';
+
+                socket.emit('createMatch', {
+                    code: gameId,
+                    whitePlayerName: whitePlayerName,
+                    blackPlayerName: blackPlayerName
+                });
+
+                const hostname = window.location.hostname;
+                const protocol = window.location.protocol;
+                const port = window.location.port ? `:${window.location.port}` : '';
+
+                // Make sure we're constructing absolute URLs correctly for production
+                const baseUrl = `${protocol}//${hostname}${port}`;
+
+                matchCode.innerText = gameId;
+
+                // Use encodeURIComponent and double-check URL construction
+                const whiteLink = `${baseUrl}/white?code=${encodeURIComponent(gameId)}`;
+                const blackLink = `${baseUrl}/black?code=${encodeURIComponent(gameId)}`;
+                const viewLink = `${baseUrl}/view?code=${encodeURIComponent(gameId)}`;
+                
+                console.log("Generated links:", {
+                    white: whiteLink,
+                    black: blackLink,
+                    view: viewLink
+                });
+
+                matchLinkWhite.innerText = whiteLink;
+                matchLinkBlack.innerText = blackLink;
+                matchLinkView.innerText = viewLink;
+
+                // Display the match info section
+                matchInfo.style.display = 'block';
+
+                // Store links for copy buttons
+                copyWhiteBtn.dataset.link = whiteLink;
+                copyBlackBtn.dataset.link = blackLink;
+                copyViewBtn.dataset.link = viewLink;
+            });
+
+            // Copy button handlers
+            copyWhiteBtn.addEventListener('click', () => {
+                copyToClipboard(copyWhiteBtn.dataset.link, copyWhiteBtn);
+            });
+            
+            copyBlackBtn.addEventListener('click', () => {
+                copyToClipboard(copyBlackBtn.dataset.link, copyBlackBtn);
+            });
+            
+            copyViewBtn.addEventListener('click', () => {
+                copyToClipboard(copyViewBtn.dataset.link, copyViewBtn);
+            });
+
+            function copyToClipboard(text, button) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                    button.style.backgroundColor = '#4CAF50';
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.backgroundColor = '';
+                    }, 2000);
+                }).catch(err => {
+                    adminErrorMessage.innerText = `Failed to copy: ${err}`;
+                    adminErrorMessage.classList.add('show');
+                    
+                    setTimeout(() => {
+                        adminErrorMessage.classList.remove('show');
+                    }, 3000);
+                });
+            }
+
+            function generateGameCode() {
+                const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+                let code = '';
+                for (let i = 0; i < 12; i++) {
+                    const randomIndex = Math.floor(Math.random() * characters.length);
+                    code += characters[randomIndex];
+                }
+                return code;
+            }
+
+            // Handle errors
+            socket.on('error', function(error) {
+                adminErrorMessage.innerText = error;
+                adminErrorMessage.classList.add('show');
+            });
+        });
+    </script>
+</body>
+</html>

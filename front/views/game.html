@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{> head}}
+    <!-- Add QR Code library -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" defer></script>
+    <!-- Add Tailwind CSS -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Add Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <style>
+        /* Base styles & layout */
+        .chess-bg {
+            background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="%23f3f4f6"><rect width="8" height="8" fill-opacity=".05"/><rect width="8" height="8" x="8" y="8" fill-opacity=".05"/></svg>');
+            background-size: 16px 16px;
+        }
+        
+        .board-container {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .board-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        /* Player badges and indicators */
+        .player-badge {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .player-badge.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            border-bottom: 3px solid #3b82f6;
+        }
+        
+        .move-indicator {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+        
+        /* Click-to-move functionality */
+        .square-55d63 {
+            cursor: pointer !important;
+            position: relative !important; 
+            z-index: 1 !important;
+            transition: transform 0.15s ease;
+        }
+        
+        .square-55d63:hover {
+            transform: scale(1.02);
+            z-index: 10 !important;
+        }
+        
+        .piece-417db {
+            pointer-events: none !important;
+            z-index: 2 !important;
+            transition: transform 0.2s ease;
+        }
+        
+        /* Highlighting styles */
+        .from-square {
+            background-color: rgba(255, 255, 0, 0.4) !important;
+            box-shadow: inset 0 0 8px rgba(255, 204, 0, 0.7) !important;
+        }
+        
+        .to-square::before {
+            content: '';
+            position: absolute;
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: rgba(0, 128, 0, 0.5);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            box-shadow: 0 0 5px rgba(0, 128, 0, 0.5);
+        }
+        
+        .capture-square::before {
+            content: '';
+            position: absolute;
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 0, 0, 0.6);
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 3;
+            box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+            animation: pulseBorder 1.5s infinite;
+        }
+        
+        @keyframes pulseBorder {
+            0% { border-color: rgba(255, 0, 0, 0.6); }
+            50% { border-color: rgba(255, 0, 0, 0.9); }
+            100% { border-color: rgba(255, 0, 0, 0.6); }
+        }
+        
+        /* Move feedback animations */
+        .highlight-from {
+            background-color: rgba(255, 251, 0, 0.4) !important;
+            transition: background-color 0.5s ease;
+        }
+        
+        .highlight-to {
+            background-color: rgba(173, 255, 47, 0.4) !important;
+            transition: background-color 0.5s ease;
+        }
+        
+        /* Card styling enhancements */
+        .game-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 0.5rem;
+        }
+        
+        .game-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Button enhancements */
+        .game-btn {
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .game-btn:after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: -100%;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+            transition: all 0.5s ease;
+        }
+        
+        .game-btn:hover:after {
+            left: 100%;
+        }
+        
+        /* Status bar animation */
+        @keyframes gradientBg {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .animated-status {
+            background: linear-gradient(90deg, #3b82f6, #2563eb, #1d4ed8, #2563eb, #3b82f6);
+            background-size: 300% 100%;
+            animation: gradientBg 10s ease infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 m-0 font-sans text-gray-800 chess-bg">
+    <!-- Background gradient -->
+    <div class="absolute inset-0">
+        <div class="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px] [&>div]:absolute [&>div]:left-0 [&>div]:right-0 [&>div]:top-0 [&>div]:-z-10 [&>div]:m-auto [&>div]:h-[310px] [&>div]:w-[310px] [&>div]:rounded-full [&>div]:bg-[#FA812F] [&>div]:opacity-20 [&>div]:blur-[100px]">
+            <div></div>
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="bg-white border-gray-200 dark:bg-gray-900 relative z-20 shadow-md">
+        <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+            <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
+                <i class="fas fa-chess text-2xl text-blue-600"></i>
+                <span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">Sign Chess</span>
+            </a>
+            <div class="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+                <button id="inviteButton" type="button" class="game-btn cursor-pointer text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" aria-label="Invite a friend to play">
+                    <i class="fas fa-user-plus mr-2"></i> Invite Friend
+                </button>
+                <button data-collapse-toggle="navbar-cta" type="button" class="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-600" aria-controls="navbar-cta" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="sr-only">Open main menu</span>
+                    <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h15M1 7h15M1 13h15"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="items-center justify-between hidden w-full md:flex md:w-auto md:order-1" id="navbar-cta">
+                <ul class="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
+                    <li>
+                        <a href="/" class="block py-2 px-3 md:p-0 text-white bg-blue-700 rounded-md md:bg-transparent md:text-blue-700 md:dark:text-blue-500" aria-current="page">
+                            <i class="fas fa-home mr-1"></i> Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block py-2 px-3 md:p-0 text-gray-900 rounded-md hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+                            <i class="fas fa-info-circle mr-1"></i> About
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="block py-2 px-3 md:p-0 text-gray-900 rounded-md hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700">
+                            <i class="fas fa-question-circle mr-1"></i> Help
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Invite Modal -->
+    <div id="inviteModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 justify-center items-center backdrop-blur-sm">
+        <div class="bg-gray-900 text-white rounded-lg max-w-md w-11/12 p-6 shadow-2xl relative transform transition-all">
+            <!-- Close button -->
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white bg-transparent border-0 text-2xl font-semibold cursor-pointer" id="closeModal" aria-label="Close modal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Header with icon -->
+            <div class="flex items-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 013 3h10a3 3 0 013-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <h3 class="text-xl font-semibold">Invite a friend to play</h3>
+            </div>
+
+            <!-- Scan section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-medium mb-2">Scan this code with a device</h4>
+                <p class="text-gray-400 text-sm mb-4">Open the Camera app and point it at this code. Then tap the notification that appears.</p>
+
+                <!-- QR code container with white background -->
+                <div class="mx-auto w-56 h-56 bg-white p-2 rounded-lg flex items-center justify-center shadow-lg">
+                    <div id="qrcode" class="w-full h-full"></div>
+                </div>
+            </div>
+
+            <!-- Link section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-medium mb-2">Send a link to a device</h4>
+                <p class="text-gray-400 text-sm mb-4">Send and open the URL below to join the game.</p>
+
+                <!-- URL input with copy button -->
+                <div class="flex rounded-md overflow-hidden border border-gray-700">
+                    <input type="text" id="shareUrlInput" readonly value="" class="flex-grow px-3 py-2 bg-gray-800 text-gray-300 text-sm outline-none" aria-label="Game invitation link" />
+                    <button id="modalCopyBtn" class="game-btn cursor-pointer bg-gray-700 hover:bg-gray-600 text-white px-4 flex items-center transition-colors" aria-label="Copy link to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Additional instructions -->
+            <div class="border border-gray-700 rounded-lg overflow-hidden">
+                <button id="instructionsToggle" class="w-full cursor-pointer flex items-center justify-between p-4 text-left focus:outline-none" aria-expanded="false" aria-controls="instructionsContent">
+                    <span class="text-base font-medium">How to join this game</span>
+                    <svg id="instructionsIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div id="instructionsContent" class="hidden p-4 border-t border-gray-700 bg-gray-800">
+                    <ol class="list-decimal list-inside text-sm text-gray-300 space-y-2">
+                        <li>Share the link or QR code with your friend</li>
+                        <li>They'll need to scan the QR or open the link in their browser</li>
+                        <li>The game will automatically connect them as the black player</li>
+                        <li>You (white) will make the first move when they join</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main game container -->
+    <div class="max-w-5xl mx-auto py-8 px-4">
+        <!-- Game title and status card -->
+        <div class="bg-white rounded-lg shadow-lg mb-6 overflow-hidden game-card">
+            <!-- Game status banner -->
+            <div id="status" class="animated-status text-white p-4 text-center font-medium text-lg"></div>
+            
+            <!-- Player badges -->
+            <div class="flex justify-between p-5">
+                <!-- White player card -->
+                <div id="whitePlayerBadge" class="player-badge flex items-center bg-gray-50 rounded-lg p-3 shadow-sm w-[48%]">
+                    <div class="bg-white w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center mr-3">
+                        <i class="fas fa-chess-king text-gray-700 text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500 font-medium">White Player</div>
+                        <div id="whitePlayerName" class="text-gray-800 font-bold">White Player</div>
+                    </div>
+                    <div class="ml-auto relative">
+                        <div id="whiteMoveIndicator" class="move-indicator hidden"></div>
+                    </div>
+                </div>
+
+                <!-- Black player card -->
+                <div id="blackPlayerBadge" class="player-badge flex items-center bg-gray-50 rounded-lg p-3 shadow-sm w-[48%]">
+                    <div class="bg-black w-10 h-10 rounded-full border-2 border-gray-200 flex items-center justify-center mr-3">
+                        <i class="fas fa-chess-king text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500 font-medium">Black Player</div>
+                        <div id="blackPlayerName" class="text-gray-800 font-bold">Black Player</div>
+                    </div>
+                    <div class="ml-auto relative">
+                        <div id="blackMoveIndicator" class="move-indicator hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game content layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chessboard container - takes 2/3 of space on large screens -->
+            <div class="lg:col-span-2">
+                <div class="board-container bg-white p-4 rounded-lg shadow-lg">
+                    <div id="myBoard" class="w-full rounded overflow-hidden"></div>
+                </div>
+            </div>
+
+            <!-- Game info sidebar - takes 1/3 of space on large screens -->
+            <div class="space-y-4">
+                <!-- Game timer card (optional) -->
+                <div class="bg-white p-4 rounded-lg shadow-lg game-card">
+                    <h3 class="text-lg font-semibold mb-2 flex items-center">
+                        <i class="fas fa-stopwatch text-blue-600 mr-2"></i> Game Time
+                    </h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="text-xs text-gray-500">White Time</div>
+                            <div id="whiteTime" class="text-xl font-mono font-bold">10:00</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="text-xs text-gray-500">Black Time</div>
+                            <div id="blackTime" class="text-xl font-mono font-bold">10:00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Move history card -->
+                <div class="bg-white p-4 rounded-lg shadow-lg game-card">
+                    <h3 class="text-lg font-semibold mb-2 flex items-center">
+                        <i class="fas fa-history text-blue-600 mr-2"></i> Move History
+                    </h3>
+                    <div id="pgn" class="bg-gray-50 p-3 border border-gray-200 rounded-lg min-h-[200px] max-h-[400px] overflow-y-auto font-mono text-sm whitespace-pre-wrap"></div>
+                </div>
+
+                <!-- Game controls (optional) -->
+                <div class="bg-white p-4 rounded-lg shadow-lg game-card">
+                    <h3 class="text-lg font-semibold mb-2 flex items-center">
+                        <i class="fas fa-gamepad text-blue-600 mr-2"></i> Game Controls
+                    </h3>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="resignBtn" class="game-btn flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg transition-colors text-sm" aria-label="Resign game">
+                            <i class="fas fa-flag-checkered mr-1"></i> Resign
+                        </button>
+                        <button id="drawBtn" class="game-btn flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2 px-3 rounded-lg transition-colors text-sm" aria-label="Offer draw">
+                            <i class="fas fa-handshake mr-1"></i> Offer Draw
+                        </button>
+                        <button id="flipBtn" class="game-btn flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg transition-colors text-sm" aria-label="Flip board">
+                            <i class="fas fa-sync-alt mr-1"></i> Flip Board
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white shadow-inner py-6 mt-10">
+        <div class="max-w-5xl mx-auto px-4 text-center text-gray-600">
+            <p>© 2023 Sign Chess. All rights reserved.</p>
+            <div class="mt-2">
+                <a href="#" class="text-blue-600 hover:underline mx-2">Privacy Policy</a>
+                <a href="#" class="text-blue-600 hover:underline mx-2">Terms of Service</a>
+                <a href="#" class="text-blue-600 hover:underline mx-2">Contact Us</a>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Game code and URL logic
+            const myUrl = window.location.href;
+            const url = new URL(myUrl);
+            const gameId = url.searchParams.get('code');
+            const hostname = window.location.hostname;
+            const protocol = window.location.protocol;
+            const port = window.location.port ? `:${window.location.port}` : '';
+            const baseUrl = `${protocol}//${hostname}${port}`;
+            const shareUrl = `${baseUrl}/black?code=${encodeURIComponent(gameId)}`;
+
+            console.log('Game URL information:', {
+                gameId: gameId,
+                baseUrl: baseUrl,
+                shareUrl: shareUrl
+            });
+            // Set player color
+            let playerColor = '{{color}}';
+            console.log('Playing as ' + playerColor);
+            
+            // Modal functionality - get elements
+            const inviteButton = document.getElementById('inviteButton');
+            const inviteModal = document.getElementById('inviteModal');
+            const closeModal = document.getElementById('closeModal');
+            const modalCopyBtn = document.getElementById('modalCopyBtn');
+            const shareUrlInput = document.getElementById('shareUrlInput');
+            const instructionsToggle = document.getElementById('instructionsToggle');
+            const instructionsContent = document.getElementById('instructionsContent');
+            const instructionsIcon = document.getElementById('instructionsIcon');
+            
+            // Set up share URL input
+            if (shareUrlInput) {
+                shareUrlInput.value = shareUrl;
+            }
+
+            // Toggle instructions
+            if (instructionsToggle && instructionsContent && instructionsIcon) {
+                instructionsToggle.addEventListener('click', function() {
+                    const isExpanded = instructionsToggle.getAttribute('aria-expanded') === 'true';
+                    instructionsToggle.setAttribute('aria-expanded', !isExpanded);
+                    instructionsContent.classList.toggle('hidden');
+                    instructionsIcon.classList.toggle('rotate-180');
+                });
+            }
+
+            // Generate QR code
+            function generateQRCode(url) {
+                const qrContainer = document.getElementById('qrcode');
+                if (!qrContainer) return;
+                
+                qrContainer.innerHTML = ''; // Clear existing content
+                
+                try {
+                    const qr = qrcode(0, 'M');
+                    qr.addData(url);
+                    qr.make();
+                    const qrImg = qr.createImgTag(5, 0);
+                    qrContainer.innerHTML = qrImg;
+
+                    const img = qrContainer.querySelector('img');
+                    if (img) {
+                        img.style.width = '100%';
+                        img.style.height = '100%';
+                        img.alt = 'QR code to join chess game';
+                    }
+                } catch (err) {
+                    console.error('Error generating QR code:', err);
+                    qrContainer.textContent = 'Could not generate QR code';
+                }
+            }
+            
+            // Open modal
+            if (inviteButton && inviteModal) {
+                inviteButton.addEventListener('click', function() {
+                    console.log('Invite button clicked');
+                    inviteModal.style.display = 'flex';
+                    inviteModal.classList.remove('hidden');
+                    inviteModal.classList.add('flex');
+                    
+                    // Generate QR code
+                    generateQRCode(shareUrl);
+                });
+            }
+            
+            // Close modal
+            if (closeModal && inviteModal) {
+                closeModal.addEventListener('click', function() {
+                    inviteModal.style.display = 'none';
+                    inviteModal.classList.add('hidden');
+                    inviteModal.classList.remove('flex');
+                });
+            }
+            
+            // Close modal when clicking outside
+            if (inviteModal) {
+                inviteModal.addEventListener('click', function(event) {
+                    if (event.target === inviteModal) {
+                        inviteModal.style.display = 'none';
+                        inviteModal.classList.add('hidden');
+                        inviteModal.classList.remove('flex');
+                    }
+                });
+            }
+            
+            // Close modal with Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape' && inviteModal && !inviteModal.classList.contains('hidden')) {
+                    inviteModal.style.display = 'none';
+                    inviteModal.classList.add('hidden');
+                    inviteModal.classList.remove('flex');
+                }
+            });
+            
+            // Copy link functionality
+            if (modalCopyBtn && shareUrlInput) {
+                modalCopyBtn.addEventListener('click', function() {
+                    shareUrlInput.select();
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        // Add a temporary success indicator
+                        const originalHTML = modalCopyBtn.innerHTML;
+                        modalCopyBtn.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                        `;
+                        modalCopyBtn.classList.add('bg-gray-800');
+                        setTimeout(() => {
+                            modalCopyBtn.innerHTML = originalHTML;
+                            modalCopyBtn.classList.remove('bg-gray-800');
+                        }, 2000);
+                    }).catch(err => {
+                        console.error('Failed to copy: ', err);
+                    });
+                });
+            }
+
+            // Update move indicators based on turn
+            function updateMoveIndicators(turn) {
+                const whiteMoveIndicator = document.getElementById('whiteMoveIndicator');
+                const blackMoveIndicator = document.getElementById('blackMoveIndicator');
+                const whitePlayerBadge = document.getElementById('whitePlayerBadge');
+                const blackPlayerBadge = document.getElementById('blackPlayerBadge');
+                
+                if (turn === 'w') {
+                    whiteMoveIndicator.classList.remove('hidden');
+                    blackMoveIndicator.classList.add('hidden');
+                    whitePlayerBadge.classList.add('active');
+                    blackPlayerBadge.classList.remove('active');
+                } else {
+                    whiteMoveIndicator.classList.add('hidden');
+                    blackMoveIndicator.classList.remove('hidden');
+                    whitePlayerBadge.classList.remove('active');
+                    blackPlayerBadge.classList.add('active');
+                }
+            }
+
+            // Initialize the game turn indicator (to be called when game state changes)
+            window.updateTurnIndicator = function(turn) {
+                updateMoveIndicators(turn);
+            };
+
+            // Make gameId available globally for index.js
+            window.gameId = gameId;
+        });
+    </script>
+    <script>
+        $(document).ready(function() {
+            console.log("Document ready in inline script");
+            
+            // Use Intersection Observer to optimize board rendering
+            if ('IntersectionObserver' in window) {
+                const boardObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            // Board is visible, ensure click handlers are bound
+                            bindSquareClickHandlers();
+                            boardObserver.disconnect();
+                        }
+                    });
+                });
+                
+                const boardContainer = document.getElementById('myBoard');
+                if (boardContainer) {
+                    boardObserver.observe(boardContainer);
+                }
+            }
+            
+            // Observe the board for changes to detect when it's fully rendered
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.addedNodes.length) {
+                        // Board elements have been added, now check if chess pieces exist
+                        if (document.querySelector('.piece-417db')) {
+                            console.log("Chess pieces detected, binding click handlers");
+                            
+                            // Board is fully rendered with pieces, bind click handlers
+                            bindSquareClickHandlers();
+                            
+                            // Disconnect the observer since we don't need it anymore
+                            observer.disconnect();
+                        }
+                    }
+                });
+            });
+            
+            // Start observing the board container
+            const boardContainer = document.getElementById('myBoard');
+            if (boardContainer) {
+                observer.observe(boardContainer, { childList: true, subtree: true });
+            }
+            
+            // Backup setTimeout in case the observer doesn't trigger
+            setTimeout(function() {
+                if (document.querySelector('.piece-417db')) {
+                    console.log("Backup timeout: binding click handlers");
+                    bindSquareClickHandlers();
+                }
+            }, 1000);
+        });
+
+        // Function to fix piece-related CSS
+        function fixPieceCss() {
+            $('.piece-417db').css({
+                'pointer-events': 'none',
+                'z-index': '2'
+            });
+            
+            $('.square-55d63').css({
+                'cursor': 'pointer',
+                'z-index': '1'
+            });
+        }
+        
+        // Add touch support optimization
+        document.addEventListener('touchstart', function() {}, {passive: true});
+    </script>
+    <script src="/public/js/index.js"></script>
+    
+    <!-- SEO Preview Modal -->
+    <div id="seoPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-80 z-50 justify-center items-center backdrop-blur-sm">
+        <div class="bg-gray-900 text-white rounded-lg max-w-md w-11/12 p-6 shadow-2xl relative transform transition-all">
+            <!-- Close button -->
+            <button class="absolute top-4 right-4 text-gray-400 hover:text-white bg-transparent border-0 text-2xl font-semibold cursor-pointer" id="closeSeoModal" aria-label="Close modal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <!-- Header with icon -->
+            <div class="flex items-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.879-4.879m0 0a3 3 0 104.243-4.242 3 3 0 00-4.243 4.242z" />
+                </svg>
+                <h3 class="text-xl font-semibold">SEO Preview</h3>
+            </div>
+
+            <!-- Google Search Result Preview -->
+            <div class="mb-6">
+                <h4 class="text-lg font-medium mb-2">Google Search Preview</h4>
+                <div class="bg-white rounded-lg p-4 text-gray-800">
+                    <div class="text-xl text-blue-600 font-medium" id="seoPreviewTitle">Sign Chess - Online Multiplayer Chess</div>
+                    <div class="text-green-700 text-sm mb-1" id="seoPreviewUrl">chess-site.example.com</div>
+                    <div class="text-sm" id="seoPreviewDescription">Play real-time chess matches with friends. Create a game and share the code to start playing.</div>
+                </div>
+            </div>
+
+            <!-- Facebook/Twitter Preview -->
+            <div class="mb-6">
+                <h4 class="text-lg font-medium mb-2">Social Media Preview</h4>
+                <div class="border border-gray-700 rounded-lg overflow-hidden">
+                    <div class="h-48 bg-gray-800 flex items-center justify-center" id="seoPreviewImageContainer">
+                        <div id="seoPreviewImage" class="w-full h-full bg-cover bg-center"></div>
+                    </div>
+                    <div class="p-4 bg-gray-700">
+                        <div class="text-sm text-gray-400 mb-1">chess-site.example.com</div>
+                        <div class="text-white font-bold" id="seoSocialTitle">Sign Chess - Online Multiplayer Chess</div>
+                        <div class="text-gray-300 text-sm mt-1" id="seoSocialDescription">Play real-time chess matches with friends. Create a game and share the code to start playing.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEO Metrics -->
+            <div class="border border-gray-700 rounded-lg overflow-hidden">
+                <div class="p-4">
+                    <h4 class="text-lg font-medium mb-3">SEO Metrics</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span>Title Length</span>
+                                <span id="titleLengthMetric">36/60</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div id="titleLengthBar" class="bg-green-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1">
+                                <span>Description Length</span>
+                                <span id="descLengthMetric">97/160</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div id="descLengthBar" class="bg-green-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+      // Fix to ensure chessboard is displayed properly
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log("Ensuring chessboard is displayed");
+        
+        // Check if board exists in DOM
+        const boardContainer = document.getElementById('myBoard');
+        if (!boardContainer) {
+          console.error("Board container not found in DOM");
+          return;
+        }
+        
+        // Force redraw if needed
+        setTimeout(function() {
+          if (typeof window.board !== 'undefined' && window.board !== null) {
+            console.log("Board exists, forcing position update");
+            window.board.position('start', false);
+          } else {
+            console.log("Board object not available yet");
+            // Try to initialize the board manually if not done already
+            if (typeof Chessboard !== 'undefined' && typeof Chess !== 'undefined') {
+              console.log("Creating new chessboard instance");
+              window.game = new Chess();
+              window.board = Chessboard('myBoard', {
+                draggable: false,
+                position: 'start',
+                pieceTheme: '/public/img/chesspieces/wikipedia/{piece}.png'
+              });
+              
+              // Flip for black player
+              if (window.playerColor === 'black') {
+                window.board.flip();
+              }
+              
+              // Bind click handlers
+              if (typeof bindSquareClickHandlers === 'function') {
+                bindSquareClickHandlers();
+              }
+            }
+          }
+        }, 800);
+        
+        // Add SEO Preview button to navbar
+        const navbarList = document.querySelector('nav ul');
+        if (navbarList) {
+          const seoPreviewLi = document.createElement('li');
+          const seoPreviewLink = document.createElement('a');
+          seoPreviewLink.href = "#";
+          seoPreviewLink.className = "block py-2 px-3 md:p-0 text-gray-900 rounded-md hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 md:dark:hover:text-blue-500 dark:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700";
+          seoPreviewLink.innerHTML = '<i class="fas fa-search mr-1"></i> SEO Preview';
+          seoPreviewLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            showSeoPreviewModal();
+          });
+          seoPreviewLi.appendChild(seoPreviewLink);
+          navbarList.appendChild(seoPreviewLi);
+        }
+        
+        // Initialize SEO Preview functionality
+        initSeoPreview();
+      });
+      
+      function initSeoPreview() {
+        const seoPreviewModal = document.getElementById('seoPreviewModal');
+        const closeSeoModal = document.getElementById('closeSeoModal');
+        
+        if (!seoPreviewModal || !closeSeoModal) return;
+        
+        // Close modal
+        closeSeoModal.addEventListener('click', function() {
+          seoPreviewModal.style.display = 'none';
+          seoPreviewModal.classList.add('hidden');
+          seoPreviewModal.classList.remove('flex');
+        });
+        
+        // Close modal when clicking outside
+        seoPreviewModal.addEventListener('click', function(event) {
+          if (event.target === seoPreviewModal) {
+            seoPreviewModal.style.display = 'none';
+            seoPreviewModal.classList.add('hidden');
+            seoPreviewModal.classList.remove('flex');
+          }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+          if (event.key === 'Escape' && !seoPreviewModal.classList.contains('hidden')) {
+            seoPreviewModal.style.display = 'none';
+            seoPreviewModal.classList.add('hidden');
+            seoPreviewModal.classList.remove('flex');
+          }
+        });
+        
+        // Update SEO preview data
+        updateSeoPreviewData();
+      }
+      
+      function showSeoPreviewModal() {
+        const seoPreviewModal = document.getElementById('seoPreviewModal');
+        if (!seoPreviewModal) return;
+        
+        updateSeoPreviewData();
+        
+        seoPreviewModal.style.display = 'flex';
+        seoPreviewModal.classList.remove('hidden');
+        seoPreviewModal.classList.add('flex');
+      }
+      
+      function updateSeoPreviewData() {
+        // Get SEO data from window object or use defaults
+        const seoData = window.seoData || {
+          title: document.title || "Sign Chess - Online Multiplayer Chess",
+          description: document.querySelector('meta[name="description"]')?.content || 
+                       "Play real-time chess matches with friends. Create a game and share the code to start playing.",
+          url: window.location.href,
+          image: "https://" + window.location.host + "/public/img/chess-preview.jpg"
+        };
+        
+        // Update preview elements
+        document.getElementById('seoPreviewTitle').textContent = seoData.title;
+        document.getElementById('seoPreviewUrl').textContent = new URL(seoData.url).hostname + new URL(seoData.url).pathname;
+        document.getElementById('seoPreviewDescription').textContent = seoData.description;
+        
+        document.getElementById('seoSocialTitle').textContent = seoData.title;
+        document.getElementById('seoSocialDescription').textContent = seoData.description;
+        
+        // Set background image for preview
+        document.getElementById('seoPreviewImage').style.backgroundImage = `url(${seoData.image})`;
+        
+        // Update metrics
+        const titleLength = seoData.title.length;
+        const descLength = seoData.description.length;
+        
+        document.getElementById('titleLengthMetric').textContent = `${titleLength}/60`;
+        document.getElementById('descLengthMetric').textContent = `${descLength}/160`;
+        
+        const titlePercent = Math.min(100, Math.round((titleLength / 60) * 100));
+        const descPercent = Math.min(100, Math.round((descLength / 160) * 100));
+        
+        document.getElementById('titleLengthBar').style.width = `${titlePercent}%`;
+        document.getElementById('descLengthBar').style.width = `${descPercent}%`;
+        
+        // Set color based on optimal ranges
+        document.getElementById('titleLengthBar').className = 
+          titleLength < 30 ? "bg-yellow-500 h-2 rounded-full" : 
+          titleLength > 60 ? "bg-red-500 h-2 rounded-full" : 
+          "bg-green-500 h-2 rounded-full";
+        
+        document.getElementById('descLengthBar').className = 
+          descLength < 70 ? "bg-yellow-500 h-2 rounded-full" : 
+          descLength > 160 ? "bg-red-500 h-2 rounded-full" : 
+          "bg-green-500 h-2 rounded-full";
+          
+        // Update the OG meta tags
+        if (document.getElementById('og-url')) {
+          document.getElementById('og-url').content = seoData.url;
+        }
+        if (document.getElementById('og-image')) {
+          document.getElementById('og-image').content = seoData.image;
+        }
+      }
+    </script>
+</body>
+</html>

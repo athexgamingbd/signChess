@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#f8fafc" />
+  
+  <!-- Gradient overlay -->
+  <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.1" />
+    <stop offset="100%" style="stop-color:#FA812F;stop-opacity:0.2" />
+  </linearGradient>
+  <rect width="1200" height="630" fill="url(#grad1)" />
+  
+  <!-- Chess grid pattern background -->
+  <pattern id="chessPattern" x="0" y="0" width="60" height="60" patternUnits="userSpaceOnUse">
+    <rect width="30" height="30" fill="#f8fafc" opacity="0.1" />
+    <rect width="30" height="30" x="30" y="30" fill="#f8fafc" opacity="0.1" />
+  </pattern>
+  <rect width="1200" height="630" fill="url(#chessPattern)" />
+  
+  <!-- Chess pieces silhouettes -->
+  <g transform="translate(200, 220) scale(4)">
+    <!-- King -->
+    <path d="M22.5,11.63L32,21.12L23.5,29.62L15,21.12L22.5,11.63z M20,0h5v5h-5V0z M20,30h5v5h-5V30z M30,15h5v5h-5V15z M10,15h5v5h-5V15z" fill="#3b82f6" opacity="0.8" />
+    
+    <!-- Queen -->
+    <path d="M12.5,22.5l-6,8.5h27l-6-8.5H12.5z M12.5,7.5h15V10h-15V7.5z M12.5,15h15v2.5h-15V15z" fill="#3b82f6" opacity="0.8" transform="translate(120, 0)" />
+    
+    <!-- Rook -->
+    <path d="M12.5,15h15V30h-15V15z M10,7.5h20v5H10V7.5z M12.5,0h15v5h-15V0z" fill="#3b82f6" opacity="0.8" transform="translate(240, 0)" />
+  </g>
+  
+  <!-- Title Text -->
+  <text x="600" y="200" font-family="Arial, sans-serif" font-size="60" font-weight="bold" text-anchor="middle" fill="#1e3a8a">Sign Chess</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="270" font-family="Arial, sans-serif" font-size="30" text-anchor="middle" fill="#475569">Play online chess with real-time multiplayer</text>
+  
+  <!-- URL -->
+  <text x="600" y="550" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#64748b">www.signchess.com</text>
+  
+  <!-- Orange accent -->
+  <rect x="450" y="310" width="300" height="6" rx="3" fill="#FA812F" />
+</svg> 
